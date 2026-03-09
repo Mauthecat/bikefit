@@ -1,0 +1,50 @@
+@import "tailwindcss";
+.app-container {
+  background-color: #0a0a0a;
+  color: #20C20E;
+  font-family: 'Courier New', Courier, monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.main-view {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.output-canvas {
+  border: 2px solid #20C20E;
+  border-radius: 8px;
+  max-width: 800px;
+  height: auto;
+}
+
+.dashboard {
+  background: #111;
+  padding: 20px;
+  border-radius: 8px;
+  width: 300px;
+  border: 1px solid #333;
+}
+
+.metric {
+  margin: 15px 0;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #222;
+  padding-bottom: 5px;
+}
+
+.progress-bar {
+  height: 10px;
+  background-color: #20C20E;
+  transition: width 0.1s;
+}
+
+.progress-container {
+  margin-top: 30px;
+  background: #222;
+}

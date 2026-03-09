@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "types": ["vite/client"],
+    "skipLibCheck": true,
+
+    /* Modo Bundler */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": false, // Cambiado a false para permitir imports normales
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Ajustes de Calidad de Código (Linting) */
+    "strict": true,
+    "noUnusedLocals": false, // Desactivado para que no te moleste mientras pruebas
+    "noUnusedParameters": false,
+    "erasableSyntaxOnly": false, // ¡ESTO CORRIGE EL ERROR DEL CONSTRUCTOR!
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src"]
+}
