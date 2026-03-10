@@ -348,7 +348,7 @@ const App = () => {
       <aside className="sidebar">
         <div className="brand">
           <Activity color="#20C20E" size={32} />
-          <span>XTEK <small>PRO</small></span>
+          <span>Hola <small>MAMAHUEBO EVO</small></span>
         </div>
         
         <button 
