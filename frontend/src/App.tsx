@@ -13,6 +13,7 @@ type Disciplina = 'ROAD' | 'MTB' | 'TT';
 
 interface MetricState { value: string; label: string; }
 
+// --- IBFI NIVEL 3: AGREGAMOS STACK Y REACH AL SETUP MECÁNICO ---
 interface CiclistaData {
   nombre: string;
   altura: number;
@@ -21,6 +22,8 @@ interface CiclistaData {
   marcaBici: string;
   largoBiela: number;
   tipoPedal: string;
+  stackBici: number; // NUEVO
+  reachBici: number; // NUEVO
 }
 
 const App = () => {
@@ -35,9 +38,11 @@ const App = () => {
     altura: 175,
     entrepierna: 82,
     disciplina: 'ROAD',
-    marcaBici: 'Trek Emonda',
+    marcaBici: 'Massi',
     largoBiela: 172.5,
-    tipoPedal: 'Shimano SPD-SL'
+    tipoPedal: 'Shimano SPD-SL',
+    stackBici: 540, // Valor referencial Talla M
+    reachBici: 385  // Valor referencial Talla M
   });
   
   const [isCalibrating, setIsCalibrating] = useState(false);
@@ -48,11 +53,8 @@ const App = () => {
   const [metrics, setMetrics] = useState<any>({});
   const latestMetricsRef = useRef<any>({});
   
-  // --- NUEVO: Memoria Global para el Reporte ---
-  // Guarda la mejor lectura de cada vista para el PDF final
   const savedMetricsGlobalRef = useRef<any>({ SIDE: {}, FRONT_BACK: {} });
 
-  // --- NUEVO: Estados para el Reporte Final ---
   const [showReportModal, setShowReportModal] = useState(false);
   const [fitterNotes, setFitterNotes] = useState<string>('');
 
@@ -141,7 +143,6 @@ const App = () => {
       setMetrics(currentCalculations);
       latestMetricsRef.current = currentCalculations; 
 
-      // GUARDAR EN MEMORIA GLOBAL SEGÚN LA VISTA ACTUAL
       if (view === 'SIDE') {
         savedMetricsGlobalRef.current.SIDE = currentCalculations;
       } else {
@@ -224,7 +225,7 @@ const App = () => {
       [pts.hl, pts.hr].forEach(p => drawJoint(ctx, p, '#FF3B3B'));
 
       ctx.fillStyle = '#FF3B3B';
-      if (m.pelvis) ctx.fillText(`${m.pelvis}° Inclinacion`, pts.hr.x + 15, pts.hr.y - 15);
+      if (m.pelvis) ctx.fillText(`${m.pelvis}°`, pts.hr.x + 15, pts.hr.y - 15);
     }
   };
 
@@ -243,19 +244,16 @@ const App = () => {
   };
   const currentIdeals = getIdeals(ciclista.disciplina);
 
-  // --- NUEVO: GENERADOR DE REPORTE PDF CON CONCLUSIONES Y MEMORIA ---
   const generatePDF = () => {
     const doc = new jsPDF();
     const id = currentIdeals;
     const today = new Date().toLocaleDateString();
     
-    // Obtenemos TODAS las métricas guardadas (Lateral + Frontal)
     const mSide = savedMetricsGlobalRef.current.SIDE;
     const mFront = savedMetricsGlobalRef.current.FRONT_BACK;
 
-    // 1. Título y Branding
     doc.setFontSize(24);
-    doc.setTextColor(32, 194, 14); // Verde XTEK
+    doc.setTextColor(32, 194, 14); 
     doc.text("XTEK SpA", 20, 20);
     
     doc.setFontSize(12);
@@ -265,10 +263,9 @@ const App = () => {
     doc.text(`Fecha: ${today}`, 160, 28);
     doc.line(20, 32, 190, 32);
 
-    // 2. Datos del Ciclista y Setup (Cajas grises para mejor diseño)
     doc.setFillColor(245, 245, 245);
-    doc.rect(20, 38, 80, 35, 'F');
-    doc.rect(110, 38, 80, 35, 'F');
+    doc.rect(20, 38, 80, 42, 'F'); // Ampliamos la caja gris
+    doc.rect(110, 38, 80, 42, 'F'); // Ampliamos la caja gris
 
     doc.setFontSize(11);
     doc.setTextColor(0, 0, 0);
@@ -283,31 +280,29 @@ const App = () => {
     doc.text(`Entrepierna: ${ciclista.entrepierna} cm`, 25, 66);
 
     doc.text(`Modelo: ${ciclista.marcaBici} (${ciclista.disciplina})`, 115, 52);
-    doc.text(`Largo Biela: ${ciclista.largoBiela} mm`, 115, 59);
-    doc.text(`Pedales: ${ciclista.tipoPedal}`, 115, 66);
+    // AGREGAMOS STACK Y REACH AL PDF
+    doc.text(`Stack / Reach: ${ciclista.stackBici} mm / ${ciclista.reachBici} mm`, 115, 59);
+    doc.text(`Largo Biela: ${ciclista.largoBiela} mm`, 115, 66);
+    doc.text(`Pedales: ${ciclista.tipoPedal}`, 115, 73);
 
-    // 3. Captura del instante (Imagen limpia)
     if (canvasRef.current) {
       const imgData = canvasRef.current.toDataURL("image/jpeg", 1.0);
-      doc.addImage(imgData, 'JPEG', 35, 80, 140, 105);
+      doc.addImage(imgData, 'JPEG', 35, 85, 140, 105);
     }
 
-    // 4. DIAGNÓSTICO DEL FITTER (LO QUE EL CLIENTE PAGA POR VER)
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(32, 194, 14);
-    doc.text("Diagnóstico Profesional y Ajustes Realizados", 20, 195);
+    doc.text("Diagnóstico Profesional y Ajustes Realizados", 20, 200);
     
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    // Ajusta el texto al ancho de la página
     const splitNotes = doc.splitTextToSize(fitterNotes || "No se registraron comentarios adicionales.", 170);
-    doc.text(splitNotes, 20, 202);
+    doc.text(splitNotes, 20, 207);
 
-    let startY = 202 + (splitNotes.length * 6) + 10;
+    let startY = 207 + (splitNotes.length * 6) + 10;
 
-    // 5. RESUMEN GLOBAL DE MÉTRICAS (Usa la memoria, no solo lo que se ve)
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(32, 194, 14);
@@ -319,7 +314,6 @@ const App = () => {
     startY += 8;
     const lh = 7; 
 
-    // Imprimir datos laterales si existen en memoria
     if (mSide.rodilla) {
       doc.text(`• Extensión de Rodilla: ${mSide.rodilla}° (Ideal: ${id.rodilla})`, 20, startY);
       doc.text(`• Flexión Rodilla (PMS): ${mSide.rodilla_pms}° (Ideal: ${id.pms})`, 20, startY + lh);
@@ -330,17 +324,16 @@ const App = () => {
       startY += lh*4;
     }
 
-    // Imprimir datos de dismetría si existen en memoria
     if (mFront.pelvis) {
       doc.text(`• Dismetría Pélvica: ${mFront.pelvis}° (Ideal: 0° - 1.5°)`, 20, startY);
       doc.text(`• Desvío Rodilla: ${mFront.rodilla_desvio} mm (Ideal: < 15mm)`, 115, startY);
     } else {
       doc.setTextColor(150, 150, 150);
-      doc.text(`* Evaluación frontal no realizada en esta sesión.`, 20, startY);
+      doc.text(`* Evaluación frontal no guardada en esta sesión.`, 20, startY);
     }
 
     doc.save(`XTEK_FitReport_${ciclista.nombre.replace(/\s+/g, '_')}.pdf`);
-    setShowReportModal(false); // Cerrar modal al terminar
+    setShowReportModal(false); 
   };
 
   return (
@@ -380,7 +373,6 @@ const App = () => {
           <Ruler size={18} /> {isCalibrating ? 'Haciendo clic...' : 'Calibrar Rueda (cm)'}
         </button>
 
-        {/* --- EL BOTÓN AHORA ABRE EL MODAL DE DIAGNÓSTICO --- */}
         <button 
           onClick={() => setShowReportModal(true)}
           className="mb-auto w-full flex items-center gap-2 p-3 bg-[#20C20E] text-black rounded-lg font-bold hover:bg-green-400 transition-colors"
@@ -435,7 +427,7 @@ const App = () => {
         </div>
       </main>
 
-      {/* --- NUEVO: MODAL DE CONCLUSIONES Y REPORTE FINAL --- */}
+      {/* MODAL DE CONCLUSIONES Y REPORTE FINAL */}
       {showReportModal && (
         <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#121212] border border-[#20C20E] p-8 rounded-xl w-full max-w-2xl shadow-2xl">
@@ -477,7 +469,7 @@ const App = () => {
           <div className="bg-[#121212] border border-[#333] p-8 rounded-xl w-full max-w-2xl shadow-2xl">
             <div className="flex justify-between items-center mb-6 border-b border-[#222] pb-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Settings className="text-[#20C20E]" /> Pre-Fit Interview (IBFI Nivel 1 & 2)
+                <Settings className="text-[#20C20E]" /> Pre-Fit Interview (IBFI Nivel 3)
               </h2>
               <button onClick={() => setShowSettings(false)} className="text-gray-500 hover:text-white"><X size={24} /></button>
             </div>
@@ -507,6 +499,19 @@ const App = () => {
                   <label className="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Marca/Modelo Bici</label>
                   <input type="text" value={ciclista.marcaBici} onChange={(e) => setCiclista({...ciclista, marcaBici: e.target.value})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-white outline-none focus:border-[#20C20E]" />
                 </div>
+                
+                {/* NUEVOS CAMPOS: STACK Y REACH */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Stack (mm)</label>
+                    <input type="number" value={ciclista.stackBici} onChange={(e) => setCiclista({...ciclista, stackBici: Number(e.target.value)})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-white outline-none focus:border-[#20C20E]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Reach (mm)</label>
+                    <input type="number" value={ciclista.reachBici} onChange={(e) => setCiclista({...ciclista, reachBici: Number(e.target.value)})} className="w-full bg-[#1a1a1a] border border-[#333] rounded p-2 text-white outline-none focus:border-[#20C20E]" />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs text-gray-400 mb-1 uppercase tracking-wider">Largo Biela (mm)</label>
